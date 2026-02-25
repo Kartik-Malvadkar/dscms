@@ -1,0 +1,15 @@
+# Node modules
+frontend/node_modules
+
+# Build folder
+frontend/dist
+
+# Environment files
+.env
+
+# XAMPP / system
+*.log
+.DS_Store
+
+# Database exports (optional)
+*.sql

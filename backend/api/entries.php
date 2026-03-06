@@ -13,11 +13,30 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === "GET") {
 
     $result = $conn->query("
-        SELECT entries.*, services.service_name 
+        SELECT 
+            entries.id,
+            entries.invoice_number,
+            entries.quantity,
+            entries.amount AS price,
+            entries.created_at,
+            customers.name AS customer_name,
+            customers.mobile,
+            services.service_name,
+            users.name AS handled_by
         FROM entries
+        JOIN customers ON entries.customer_id = customers.id
         JOIN services ON entries.service_id = services.id
+        JOIN users ON entries.handled_by = users.id
         ORDER BY entries.id DESC
     ");
+
+    if (!$result) {
+        echo json_encode([
+            "status" => "error",
+            "message" => $conn->error
+        ]);
+        exit;
+    }
 
     $entries = [];
 
@@ -26,22 +45,55 @@ if ($method === "GET") {
     }
 
     echo json_encode($entries);
-}
-
-elseif ($method === "POST") {
+} elseif ($method === "POST") {
 
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $customer = $data['customer_name'];
+    $name = $data['name'];
+    $mobile = $data['mobile'];
+    $email = $data['email'];
+    $address = $data['address'];
     $service_id = $data['service_id'];
-    $price = $data['price'];
+    $quantity = $data['quantity'];
+    $user_id = $data['user_id'];
 
+    // 1️⃣ Check if customer exists
+    $stmt = $conn->prepare("SELECT id FROM customers WHERE name = ?");
+    $stmt->bind_param("s", $name);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $customer = $result->fetch_assoc();
+        $customer_id = $customer['id'];
+    } else {
+        $stmt = $conn->prepare("INSERT INTO customers (name, mobile, address) VALUES (?, ?, ?)");
+        $stmt->bind_param("sss", $name, $mobile, $address);
+        $stmt->execute();
+        $customer_id = $stmt->insert_id;
+    }
+
+    // 2️⃣ Get service price
+    $stmt = $conn->prepare("SELECT price FROM services WHERE id = ?");
+    $stmt->bind_param("i", $service_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $service = $result->fetch_assoc();
+    $price = $service['price'];
+
+    $total = $price * $quantity;
+
+    // 3️⃣ Generate invoice number
+    $invoice = "INV-" . date("YmdHis");
+
+    // 4️⃣ Insert entry
     $stmt = $conn->prepare("
-        INSERT INTO entries (customer_name, service_id, price)
-        VALUES (?, ?, ?)
+        INSERT INTO entries 
+        (invoice_number, customer_id, service_id, quantity, amount, handled_by)
+        VALUES (?, ?, ?, ?, ?, ?)
     ");
 
-    $stmt->bind_param("sid", $customer, $service_id, $price);
+    $stmt->bind_param("siiidi", $invoice, $customer_id, $service_id, $quantity, $total, $user_id);
 
     if ($stmt->execute()) {
         echo json_encode(["status" => "success"]);
@@ -49,4 +101,3 @@ elseif ($method === "POST") {
         echo json_encode(["status" => "error"]);
     }
 }
-?>

@@ -13,6 +13,14 @@ $method = $_SERVER['REQUEST_METHOD'];
 if ($method === "GET") {
 
     $result = $conn->query("SELECT * FROM services ORDER BY id DESC");
+
+    if (!$result) {
+        echo json_encode([
+            "status" => "error",
+            "message" => $conn->error
+        ]);
+        exit;
+    }
     $services = [];
 
     while ($row = $result->fetch_assoc()) {
@@ -20,9 +28,7 @@ if ($method === "GET") {
     }
 
     echo json_encode($services);
-}
-
-elseif ($method === "POST") {
+} elseif ($method === "POST") {
 
     $data = json_decode(file_get_contents("php://input"), true);
 
@@ -37,9 +43,7 @@ elseif ($method === "POST") {
     } else {
         echo json_encode(["status" => "error"]);
     }
-}
-
-elseif ($method === "DELETE") {
+} elseif ($method === "DELETE") {
 
     $id = $_GET['id'];
 
@@ -50,4 +54,3 @@ elseif ($method === "DELETE") {
         echo json_encode(["status" => "deleted"]);
     }
 }
-?>

@@ -18,12 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     echo json_encode(["status" => "success"]);
 } else {
     $result = $conn->query("SELECT * FROM expenses ORDER BY id DESC");
+
+    if (!$result) {
+        echo json_encode([
+            "status" => "error",
+            "message" => $conn->error
+        ]);
+        exit;
+    }
     $rows = [];
 
-    while($row = $result->fetch_assoc()) {
+    while ($row = $result->fetch_assoc()) {
         $rows[] = $row;
     }
 
     echo json_encode($rows);
 }
-?>

@@ -43,6 +43,9 @@ $stmt->bind_param("sss", $name, $email, $password);
 if ($stmt->execute()) {
     echo json_encode(["status" => "success"]);
 } else {
-    echo json_encode(["status" => "error"]);
+    echo json_encode([
+        "status" => "error",
+        "message" => $conn->error
+    ]);
 }
 ?>

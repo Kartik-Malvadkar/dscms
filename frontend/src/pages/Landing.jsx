@@ -13,12 +13,21 @@ function Landing() {
           Onkar Digital Seva Center
         </h1>
 
-        <button
-          onClick={() => navigate("/login")}
-          className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg font-semibold transition"
-        >
-          Secure Login
-        </button>
+        <div className="flex gap-4">
+          <button
+            onClick={() => navigate("/login")}
+            className="bg-blue-600 hover:bg-blue-700 px-5 py-2 rounded-lg font-semibold transition"
+          >
+            Secure Login
+          </button>
+
+          <button
+            onClick={() => navigate("/admin-register")}
+            className="bg-green-600 hover:bg-green-700 px-5 py-2 rounded-lg font-semibold transition"
+          >
+            Admin Register
+          </button>
+        </div>
       </div>
 
       {/* Hero Section */}
@@ -32,6 +41,7 @@ function Landing() {
         </p>
 
         <div className="flex gap-6">
+
           <button
             onClick={() => navigate("/login")}
             className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold transition"
@@ -40,11 +50,12 @@ function Landing() {
           </button>
 
           <button
-            onClick={() => navigate("/register")}
-            className="border border-blue-500 px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 hover:border-blue-600 transition"
+            onClick={() => navigate("/admin-register")}
+            className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold transition"
           >
-            Create Account
+            Admin Registration
           </button>
+
         </div>
       </div>
 

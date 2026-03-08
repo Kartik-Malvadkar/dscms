@@ -80,6 +80,15 @@ function Register() {
                 >
                     Register Securely
                 </button>
+                 <p className="text-center text-sm text-gray-300 mt-6">
+                    Already have an account?{" "}
+                    <span
+                        onClick={() => navigate("/login")}
+                        className="text-blue-400 cursor-pointer hover:underline"
+                    >
+                        Login
+                    </span>
+                </p>
 
             </div>
 

@@ -8,48 +8,64 @@ function Login() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [role, setRole] = useState("operator");
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleLogin = async () => {
+    const handleLogin = async (e) => {
+
+        if (e) e.preventDefault();
+
+        if (!email || !password) {
+            alert("Please enter email and password");
+            return;
+        }
+
         try {
 
             const res = await axios.post(
                 "http://localhost/dscms/backend/api/login.php",
                 {
                     email: email,
-                    password: password
+                    password: password,
+                    role: role
                 }
             );
 
-            if (res.data.status === "success") {
+            const data = res.data;
 
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(res.data.user)
-                );
+            if (data.status === "success") {
 
-                navigate("/dashboard");
+                const user = data.user;
 
-            } else if (res.data.status === "invalid") {
+                localStorage.setItem("user", JSON.stringify(user));
 
-                alert("Wrong Password");
+                if (user.role === "admin") {
+                    navigate("/admin");
+                } else {
+                    navigate("/operator/new-entry");
+                }
 
-            } else if (res.data.status === "not_found") {
-
-                alert("User not registered");
-
-            } else {
-
-                alert("Invalid Email or Password");
-
+            }
+            else if (data.status === "invalid_password") {
+                alert("Wrong password");
+            }
+            else if (data.status === "not_found") {
+                alert("User not found");
+            }
+            else if (data.status === "role_mismatch") {
+                alert("You selected wrong role");
+            }
+            else {
+                alert("Login failed");
             }
 
         } catch (error) {
 
             console.error(error);
-            alert("An error occurred");
+            alert("Server error");
 
         }
+
     };
 
     return (
@@ -67,7 +83,43 @@ function Login() {
                 </p>
 
 
+                {/* ROLE SELECTION */}
+
+                <div className="mb-4">
+
+                    <label className="block mb-2 text-sm text-gray-300">
+                        Login As
+                    </label>
+
+                    <div className="flex gap-4">
+
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="radio"
+                                value="admin"
+                                checked={role === "admin"}
+                                onChange={(e) => setRole(e.target.value)}
+                            />
+                            Admin
+                        </label>
+
+                        <label className="flex items-center gap-2">
+                            <input
+                                type="radio"
+                                value="operator"
+                                checked={role === "operator"}
+                                onChange={(e) => setRole(e.target.value)}
+                            />
+                            Operator
+                        </label>
+
+                    </div>
+
+                </div>
+
+
                 {/* EMAIL */}
+
                 <div className="mb-5">
 
                     <label className="block mb-2 text-sm text-gray-300">
@@ -77,6 +129,7 @@ function Login() {
                     <input
                         type="email"
                         placeholder="Enter your email"
+                        value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full px-4 py-2 rounded-lg bg-white/10 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
@@ -85,6 +138,7 @@ function Login() {
 
 
                 {/* PASSWORD */}
+
                 <div className="mb-6">
 
                     <label className="block mb-2 text-sm text-gray-300">
@@ -96,17 +150,20 @@ function Login() {
                         <input
                             type={showPassword ? "text" : "password"}
                             placeholder="Enter your password"
+                            value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") handleLogin();
+                            }}
                             className="w-full px-4 py-2 pr-10 rounded-lg bg-white/10 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
 
-                        {/* Eye Button */}
                         <button
                             type="button"
                             onMouseDown={() => setShowPassword(true)}
                             onMouseUp={() => setShowPassword(false)}
                             onMouseLeave={() => setShowPassword(false)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300"
                         >
                             👁
                         </button>
@@ -117,6 +174,7 @@ function Login() {
 
 
                 {/* LOGIN BUTTON */}
+
                 <button
                     onClick={handleLogin}
                     className="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded-lg font-semibold transition"
@@ -126,17 +184,15 @@ function Login() {
 
 
                 {/* REGISTER LINK */}
-                <p className="text-center mt-6 text-sm text-gray-400">
 
-                    Don’t have an account?{" "}
-
+                <p className="text-center text-sm text-gray-300 mt-6">
+                    Don't have an account?{" "}
                     <span
-                        onClick={() => navigate("/register")}
-                        className="underline cursor-pointer text-blue-300"
+                        onClick={() => navigate("/admin-register")}
+                        className="text-blue-400 cursor-pointer hover:underline"
                     >
-                        Register
+                        Create one
                     </span>
-
                 </p>
 
             </div>

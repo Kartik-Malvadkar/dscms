@@ -1,5 +1,7 @@
 <?php
-error_reporting(0);
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 header("Access-Control-Allow-Origin: *");
 header("Access-Control-Allow-Headers: Content-Type");
@@ -9,6 +11,10 @@ header("Content-Type: application/json");
 include("../config/db.php");
 
 $method = $_SERVER['REQUEST_METHOD'];
+
+
+
+/* ---------------- GET ENTRIES ---------------- */
 
 if ($method === "GET") {
 
@@ -30,14 +36,6 @@ if ($method === "GET") {
         ORDER BY entries.id DESC
     ");
 
-    if (!$result) {
-        echo json_encode([
-            "status" => "error",
-            "message" => $conn->error
-        ]);
-        exit;
-    }
-
     $entries = [];
 
     while ($row = $result->fetch_assoc()) {
@@ -45,59 +43,116 @@ if ($method === "GET") {
     }
 
     echo json_encode($entries);
-} elseif ($method === "POST") {
+    exit;
+}
+
+
+
+/* ---------------- CREATE ENTRY ---------------- */
+
+if ($method === "POST") {
 
     $data = json_decode(file_get_contents("php://input"), true);
 
-    $name = $data['name'];
-    $mobile = $data['mobile'];
-    $email = $data['email'];
-    $address = $data['address'];
-    $service_id = $data['service_id'];
-    $quantity = $data['quantity'];
-    $user_id = $data['user_id'];
+    $name = $data['name'] ?? "";
+    $mobile = $data['mobile'] ?? "";
+    $address = $data['address'] ?? "";
+    $service_id = $data['service_id'] ?? "";
+    $quantity = $data['quantity'] ?? 1;
+    $user_id = $data['user_id'] ?? "";
 
-    // 1️⃣ Check if customer exists
-    $stmt = $conn->prepare("SELECT id FROM customers WHERE name = ?");
-    $stmt->bind_param("s", $name);
+
+    if (!$name || !$service_id || !$user_id) {
+
+        echo json_encode([
+            "status" => "error",
+            "message" => "Missing required data"
+        ]);
+        exit;
+
+    }
+
+
+
+    /* ---------- CHECK CUSTOMER ---------- */
+
+    $stmt = $conn->prepare("SELECT id FROM customers WHERE name=?");
+    $stmt->bind_param("s",$name);
     $stmt->execute();
     $result = $stmt->get_result();
 
+
     if ($result->num_rows > 0) {
-        $customer = $result->fetch_assoc();
-        $customer_id = $customer['id'];
+
+        $row = $result->fetch_assoc();
+        $customer_id = $row['id'];
+
     } else {
-        $stmt = $conn->prepare("INSERT INTO customers (name, mobile, address) VALUES (?, ?, ?)");
-        $stmt->bind_param("sss", $name, $mobile, $address);
+
+        $stmt = $conn->prepare("
+            INSERT INTO customers (name,mobile,address)
+            VALUES (?,?,?)
+        ");
+
+        $stmt->bind_param("sss",$name,$mobile,$address);
         $stmt->execute();
+
         $customer_id = $stmt->insert_id;
     }
 
-    // 2️⃣ Get service price
-    $stmt = $conn->prepare("SELECT price FROM services WHERE id = ?");
-    $stmt->bind_param("i", $service_id);
+
+
+    /* ---------- GET SERVICE PRICE ---------- */
+
+    $stmt = $conn->prepare("SELECT price FROM services WHERE id=?");
+    $stmt->bind_param("i",$service_id);
     $stmt->execute();
     $result = $stmt->get_result();
     $service = $result->fetch_assoc();
+
     $price = $service['price'];
 
     $total = $price * $quantity;
 
-    // 3️⃣ Generate invoice number
-    $invoice = "INV-" . date("YmdHis");
 
-    // 4️⃣ Insert entry
+
+    /* ---------- GENERATE INVOICE ---------- */
+
+    $invoice = "INV-" . time();
+
+
+
+    /* ---------- INSERT ENTRY ---------- */
+
     $stmt = $conn->prepare("
-        INSERT INTO entries 
-        (invoice_number, customer_id, service_id, quantity, amount, handled_by)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO entries
+        (invoice_number,customer_id,service_id,quantity,amount,handled_by)
+        VALUES (?,?,?,?,?,?)
     ");
 
-    $stmt->bind_param("siiidi", $invoice, $customer_id, $service_id, $quantity, $total, $user_id);
+    $stmt->bind_param(
+        "siiidi",
+        $invoice,
+        $customer_id,
+        $service_id,
+        $quantity,
+        $total,
+        $user_id
+    );
+
 
     if ($stmt->execute()) {
-        echo json_encode(["status" => "success"]);
+
+        echo json_encode([
+            "status" => "success"
+        ]);
+
     } else {
-        echo json_encode(["status" => "error"]);
+
+        echo json_encode([
+            "status" => "error",
+            "message" => $conn->error
+        ]);
     }
+
 }
